@@ -5,42 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>KS1 Secure Transaction</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #050A16; color: white; padding: 20px; }
-    .container { max-width: 700px; margin: 0 auto; }
-    input, button {
-      width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444;
-      background: #111; color: white; font-size: 16px;
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #050A16; 
+      color: white; 
+      padding: 20px; 
     }
-    button { background: #D4AF37; color: #001A3D; border: none; font-weight: bold; cursor: pointer; }
-    .card { background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; margin-top: 20px; }
+    .container { 
+      max-width: 700px; 
+      margin: 0 auto; 
+    }
+    input, button {
+      width: 100%; 
+      padding: 12px; 
+      margin: 10px 0; 
+      border-radius: 8px; 
+      border: 1px solid #444;
+      background: #111; 
+      color: white; 
+      font-size: 16px;
+    }
+    button { 
+      font-weight: bold; 
+      cursor: pointer; 
+    }
+    .btn-release { 
+      background: #2e8b57; 
+      color: white; 
+    }
+    .btn-dispute { 
+      background: #b22222; 
+      color: white; 
+    }
+    .card { 
+      background: rgba(255,255,255,0.05); 
+      padding: 24px; 
+      border-radius: 16px; 
+      margin-top: 20px; 
+    }
+    #status { 
+      margin-top: 20px; 
+      min-height: 24px; 
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Complete Payment</h2>
-    <input type="text" id="sellerSmeId" placeholder="Seller SME ID" required />
-    <input type="number" id="totalAmount" placeholder="Total Amount (GHS)" required />
-    <button onclick="completePayment()">Release Funds</button>
+    <h2>Secure Transaction – Escrow Control</h2>
+    
+    <input type="text" id="sellerSmeId" placeholder="Seller SME ID (e.g., KS1-T5WQ)" required />
+    <input type="number" id="totalAmount" placeholder="Trade Amount (GHS)" required />
+    
+    <button class="btn-release" onclick="releaseFunds()">✅ Release Funds to Seller</button>
+    <button class="btn-dispute" onclick="openDispute()">⚠️ Open Dispute</button>
+    
     <div id="status"></div>
   </div>
 
   <script>
-    async function completePayment() {
+    // 🔥 RELEASE FUNDS – BOOST SELLER TRUST
+    async function releaseFunds() {
       const sellerSmeId = document.getElementById('sellerSmeId').value.trim();
       const totalAmount = parseFloat(document.getElementById('totalAmount').value);
 
       if (!sellerSmeId || isNaN(totalAmount)) {
-        alert('Invalid input');
+        alert('Please enter valid Seller ID and Amount.');
         return;
       }
 
-      document.getElementById('status').innerHTML = '<p>Releasing funds...</p>';
+      document.getElementById('status').innerHTML = '<p style="color:#2e8b57;">Processing payment release...</p>';
 
       try {
         // Simulate escrow release
         await new Promise(r => setTimeout(r, 800));
 
-        // 🔥 Notify Trust Score
+        // 🔥 Notify Trust Score: Trade completed
         fetch('https://ks1-trust-score.onrender.com/api/trust/recalculate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,10 +91,46 @@
         }).catch(err => console.error('Trust Score update failed:', err));
 
         document.getElementById('status').innerHTML = 
-          `<p style="color:#4caf50;">✅ Payment released! Seller trust score updated.</p>`;
+          `<p style="color:#4caf50;">✅ Funds released! Seller's trust score updated.</p>`;
       } catch (err) {
         document.getElementById('status').innerHTML = 
-          `<p style="color:#f44336;">❌ Payment failed</p>`;
+          `<p style="color:#f44336;">❌ Payment release failed</p>`;
+      }
+    }
+
+    // 🔥 OPEN DISPUTE – PENALIZE SELLER TRUST
+    async function openDispute() {
+      const sellerSmeId = document.getElementById('sellerSmeId').value.trim();
+      if (!sellerSmeId) {
+        alert('Please enter the Seller SME ID to dispute.');
+        return;
+      }
+
+      const reason = prompt('Briefly describe the issue (e.g., item not delivered):');
+      if (!reason) return;
+
+      document.getElementById('status').innerHTML = '<p style="color:#ffa500;">Submitting dispute...</p>';
+
+      try {
+        // Simulate dispute submission
+        await new Promise(r => setTimeout(r, 600));
+
+        // 🔥 Notify Trust Score: Dispute opened
+        fetch('https://ks1-trust-score.onrender.com/api/trust/recalculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            smeId: sellerSmeId,
+            eventType: 'dispute.opened',
+            eventData: {}
+          })
+        }).catch(err => console.error('Trust Score dispute update failed:', err));
+
+        document.getElementById('status').innerHTML = 
+          `<p style="color:#ffa500;">⚠️ Dispute submitted. Seller's trust score will be reviewed.</p>`;
+      } catch (err) {
+        document.getElementById('status').innerHTML = 
+          `<p style="color:#f44336;">❌ Dispute submission failed</p>`;
       }
     }
   </script>
