@@ -1,138 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>KS1 Secure Transaction</title>
+  <title>KS1 ALKEBULAN PAY – [Secure Transaction]</title>
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      background: #050A16; 
-      color: white; 
-      padding: 20px; 
-    }
-    .container { 
-      max-width: 700px; 
-      margin: 0 auto; 
-    }
-    input, button {
-      width: 100%; 
-      padding: 12px; 
-      margin: 10px 0; 
-      border-radius: 8px; 
-      border: 1px solid #444;
-      background: #111; 
-      color: white; 
-      font-size: 16px;
-    }
-    button { 
-      font-weight: bold; 
-      cursor: pointer; 
-    }
-    .btn-release { 
-      background: #2e8b57; 
-      color: white; 
-    }
-    .btn-dispute { 
-      background: #b22222; 
-      color: white; 
-    }
-    .card { 
-      background: rgba(255,255,255,0.05); 
-      padding: 24px; 
-      border-radius: 16px; 
-      margin-top: 20px; 
-    }
-    #status { 
-      margin-top: 20px; 
-      min-height: 24px; 
-    }
+    body { background: #050A16; color: white; font-family: sans-serif; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; }
+    .btn { background: #D4AF37; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Secure Transaction – Escrow Control</h2>
-    
-    <input type="text" id="sellerSmeId" placeholder="Seller SME ID (e.g., KS1-T5WQ)" required />
-    <input type="number" id="totalAmount" placeholder="Trade Amount (GHS)" required />
-    
-    <button class="btn-release" onclick="releaseFunds()">✅ Release Funds to Seller</button>
-    <button class="btn-dispute" onclick="openDispute()">⚠️ Open Dispute</button>
-    
-    <div id="status"></div>
+    <h1>[Service Name] Dashboard</h1>
+    <div id="user-info" class="card">Loading...</div>
+    <button class="btn" onclick="logout()">Logout</button>
   </div>
 
   <script>
-    // 🔥 RELEASE FUNDS – BOOST SELLER TRUST
-    async function releaseFunds() {
-      const sellerSmeId = document.getElementById('sellerSmeId').value.trim();
-      const totalAmount = parseFloat(document.getElementById('totalAmount').value);
+    const token = localStorage.getItem('ks1_jwt_token');
+    if (!token) {
+      window.location.href = 'https://ks1-alkebulan-pay-identity-hub.pages.dev';
+    }
 
-      if (!sellerSmeId || isNaN(totalAmount)) {
-        alert('Please enter valid Seller ID and Amount.');
-        return;
-      }
-
-      document.getElementById('status').innerHTML = '<p style="color:#2e8b57;">Processing payment release...</p>';
-
+    async function loadUser() {
       try {
-        // Simulate escrow release
-        await new Promise(r => setTimeout(r, 800));
-
-        // 🔥 Notify Trust Score: Trade completed
-        fetch('https://ks1-trust-score.onrender.com/api/trust/recalculate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            smeId: sellerSmeId,
-            eventType: 'transaction.completed',
-            eventData: { amount: totalAmount }
-          })
-        }).catch(err => console.error('Trust Score update failed:', err));
-
-        document.getElementById('status').innerHTML = 
-          `<p style="color:#4caf50;">✅ Funds released! Seller's trust score updated.</p>`;
+        const res = await fetch('https://ks1-central-auth.onrender.com/auth/verify', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Session expired');
+        const user = await res.json();
+        document.getElementById('user-info').innerHTML = `
+          <p>Welcome, user!</p>
+          <p>Trade ID: ${user.trade_id || user.user_id}</p>
+        `;
       } catch (err) {
-        document.getElementById('status').innerHTML = 
-          `<p style="color:#f44336;">❌ Payment release failed</p>`;
+        alert('Please log in again.');
+        window.location.href = 'https://ks1-alkebulan-pay-identity-hub.pages.dev';
       }
     }
 
-    // 🔥 OPEN DISPUTE – PENALIZE SELLER TRUST
-    async function openDispute() {
-      const sellerSmeId = document.getElementById('sellerSmeId').value.trim();
-      if (!sellerSmeId) {
-        alert('Please enter the Seller SME ID to dispute.');
-        return;
-      }
-
-      const reason = prompt('Briefly describe the issue (e.g., item not delivered):');
-      if (!reason) return;
-
-      document.getElementById('status').innerHTML = '<p style="color:#ffa500;">Submitting dispute...</p>';
-
-      try {
-        // Simulate dispute submission
-        await new Promise(r => setTimeout(r, 600));
-
-        // 🔥 Notify Trust Score: Dispute opened
-        fetch('https://ks1-trust-score.onrender.com/api/trust/recalculate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            smeId: sellerSmeId,
-            eventType: 'dispute.opened',
-            eventData: {}
-          })
-        }).catch(err => console.error('Trust Score dispute update failed:', err));
-
-        document.getElementById('status').innerHTML = 
-          `<p style="color:#ffa500;">⚠️ Dispute submitted. Seller's trust score will be reviewed.</p>`;
-      } catch (err) {
-        document.getElementById('status').innerHTML = 
-          `<p style="color:#f44336;">❌ Dispute submission failed</p>`;
-      }
+    function logout() {
+      localStorage.removeItem('ks1_jwt_token');
+      window.location.href = 'https://ks1-alkebulan-pay-identity-hub.pages.dev';
     }
+
+    loadUser();
   </script>
 </body>
 </html>
